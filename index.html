@@ -61,11 +61,22 @@
         import { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, LabelList } from 'https://esm.sh/recharts@2.12.2?deps=react@18.2.0,react-dom@18.2.0';
         import { 
             X, Plus, Banknote, CreditCard, PieChart as PieIcon, Home, Utensils, ShoppingBag, 
-            Briefcase, ChevronDown, TrendingUp, Layers, Calculator, Edit3, Download, Upload, Image as ImageIcon, Trash2, Settings, Eye, EyeOff, Hash, MessageCircle, ArrowRight, Coffee, Wallet, Receipt, PiggyBank, ChevronLeft, ChevronRight, RefreshCw, Equal, Save, Filter, Trophy, Sparkles, NotebookPen, Instagram
+            Briefcase, ChevronDown, TrendingUp, Layers, Calculator, Edit3, Download, Upload, Image as ImageIcon, Trash2, Settings, Eye, EyeOff, Hash, MessageCircle, ArrowRight, Coffee, Wallet, Receipt, PiggyBank, ChevronLeft, ChevronRight, RefreshCw, Equal, Save, Filter, Trophy, Sparkles, NotebookPen, Instagram, AlertCircle
         } from 'https://esm.sh/lucide-react@0.344.0?deps=react@18.2.0';
 
         const INITIAL_BANK_BALANCE_DEFAULT = 0; 
+        
+        // 這是目前的最新版本 Key
         const STORAGE_KEY = 'rich_lady_ledger_v10_final'; 
+
+        // 這是所有舊版本的 Key，用於自動搬家
+        const LEGACY_KEYS = [
+            'rich_lady_ledger_v9_final',
+            'rich_lady_ledger_v8_diary',
+            'rich_lady_ledger_v7_cash',
+            'rich_lady_ledger_v6_final',
+            'rich_lady_ledger_v5'
+        ];
 
         const DEFAULT_RICH_LADY_IMAGE = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23f2ede7'/%3E%3Ctext x='50' y='50' font-family='Arial' font-size='10' text-anchor='middle' fill='%232c2c2c'%3E上傳富婆照%3C/text%3E%3C/svg%3E";
 
@@ -101,32 +112,66 @@
             return <NotebookPen className={iconClass} />;
         };
 
+        // --- 新增：版本更新通知 Modal ---
+        const UpdateNoticeModal = ({ onClose, onBackup }) => {
+            return (
+                <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in">
+                    <div className={`w-full max-w-md bg-white rounded-[2rem] p-6 relative border-4 ${THEME.border} shadow-2xl text-center`}>
+                        <div className="w-20 h-20 bg-[#debe51] rounded-full flex items-center justify-center mx-auto mb-4 border-4 border-[#2c2c2c] -mt-12">
+                            <Sparkles className="w-10 h-10 text-[#2c2c2c]" />
+                        </div>
+                        <h2 className="text-2xl font-black text-[#2c2c2c] mb-2">系統更新通知</h2>
+                        <p className="text-gray-600 font-bold mb-6 leading-relaxed">
+                            親愛的富婆，我們偵測到您有舊版本的帳本資料，<br/>
+                            系統已經自動幫您 <span className="text-[#b05f4d] underline">搬家成功</span> 囉！🎉
+                        </p>
+                        
+                        <div className="bg-[#f2ede7] p-4 rounded-xl border-2 border-[#d1cdc7] mb-6 text-left text-sm">
+                            <p className="font-bold text-[#2c2c2c] mb-1">💡 建議操作：</p>
+                            <p className="text-gray-500">為了確保資料萬無一失，建議您現在先下載一份備份檔案。</p>
+                        </div>
+
+                        <div className="space-y-3">
+                            <button onClick={onBackup} className="w-full py-4 bg-[#2c2c2c] text-white font-black rounded-xl shadow-lg active:scale-95 transition-transform flex items-center justify-center gap-2">
+                                <Download size={20}/> 下載備份 (推薦)
+                            </button>
+                            <button onClick={onClose} className="w-full py-3 text-gray-400 font-bold hover:text-[#2c2c2c] transition-colors">
+                                我知道了，直接開始
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
         const SplashScreen = ({ onStart, customImage }) => {
             const quote = useMemo(() => getRandomQuote('welcome'), []);
             return (
                 <div className="fixed inset-0 z-[200] flex flex-col items-center justify-center bg-[#f2ede7] animate-in fade-in duration-700 w-full h-full overflow-hidden">
                     
-                    {/* 背景圖層：預設載入 bg.jpg */}
-                    <img src="bg.jpg" className="absolute inset-0 w-full h-full object-cover z-0" onError={(e) => e.target.style.display='none'} alt="background" />
-                    
-                    {/* 遮罩層：讓文字清楚一點，如果背景圖太花 */}
-                    <div className="absolute inset-0 bg-white/40 backdrop-blur-[2px] z-0"></div>
-                    <div className="absolute inset-0 bg-polka opacity-30 pointer-events-none z-0"></div>
+                    {/* 背景圖調整：靠左下、2/3高度、透明度低 */}
+                    <div className="absolute inset-x-0 bottom-0 h-[65%] z-0 pointer-events-none opacity-30">
+                        <img src="bg.jpg" className="w-full h-full object-cover object-left-bottom mask-gradient" onError={(e) => e.target.style.display='none'} alt="background" />
+                        {/* 漸層遮罩讓頂部淡出 */}
+                        <div className="absolute inset-0 bg-gradient-to-b from-[#f2ede7] via-transparent to-transparent"></div>
+                    </div>
 
-                    <div className="relative z-10 flex flex-col items-center w-full max-w-md mx-auto p-6">
+                    <div className="absolute inset-0 bg-polka opacity-20 pointer-events-none z-0"></div>
+
+                    <div className="relative z-10 flex flex-col items-center w-full max-w-md mx-auto p-6 mt-[-100px]">
                         <div className={`w-40 h-40 mb-6 rounded-full flex items-center justify-center border-4 ${THEME.border} shadow-2xl bg-white transform hover:scale-110 transition-transform duration-500 cursor-pointer active:rotate-12`}>
                             {customImage ? <img src={customImage} className="w-full h-full object-cover rounded-full" alt="富婆照" /> : <Wallet className="w-20 h-20 text-[#f7b7a7]" strokeWidth={2} />}
                         </div>
-                        <h1 className="text-4xl font-black mb-1 tracking-tight text-[#2c2c2c] drop-shadow-md">RICH LADY</h1>
-                        <p className="text-lg font-bold text-[#5a758a] tracking-[0.2em] mb-8 drop-shadow-sm">富婆記帳本 越花越有錢</p>
+                        {/* 字體顏色改為粉色 #f7b7a7 */}
+                        <h1 className="text-4xl font-black mb-1 tracking-tight text-[#f7b7a7] drop-shadow-sm stroke-text">RICH LADY</h1>
+                        <p className="text-lg font-bold text-[#5a758a] tracking-[0.2em] mb-8">富婆記帳本 越花越有錢</p>
                         
-                        <div className={`relative bg-white/90 border-4 ${THEME.border} p-6 rounded-[2rem] shadow-xl mb-12 max-w-xs text-center w-full backdrop-blur-sm`}>
+                        <div className={`relative bg-white/95 border-4 ${THEME.border} p-6 rounded-[2rem] shadow-xl mb-12 max-w-xs text-center w-full backdrop-blur-sm`}>
                             <p className="text-lg font-black text-[#2c2c2c] leading-relaxed">{quote}</p>
                             <div className={`absolute -bottom-4 left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-[10px] border-l-transparent border-r-[10px] border-r-transparent border-b-[16px] border-b-[#2c2c2c] rotate-180`}></div>
                             <div className={`absolute -bottom-[11px] left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-b-[12px] border-b-white rotate-180`}></div>
                         </div>
                         
-                        {/* 縮小並美化後的按鈕 */}
                         <button onClick={onStart} className={`group relative w-auto px-10 py-4 bg-[#2c2c2c] text-[#debe51] font-black text-lg rounded-full border-4 border-[#debe51] shadow-[0px_10px_20px_rgba(0,0,0,0.25)] active:scale-95 active:shadow-sm transition-all flex items-center justify-center gap-3 tracking-wider hover:bg-black`}>
                            <Sparkles className="w-5 h-5 animate-pulse"/> ✨ 開啟富婆記帳模式
                         </button>
@@ -460,17 +505,47 @@
             const [isLoaded, setIsLoaded] = useState(false);
             const [showSplash, setShowSplash] = useState(true); 
             const [viewMode, setViewMode] = useState('list');
-            const [modals, setModals] = useState({ setting: false, add: false, edit: null, cal: false, msg: null, backup: false });
+            const [modals, setModals] = useState({ setting: false, add: false, edit: null, cal: false, msg: null, backup: false, updateNotice: false });
             const [showBalance, setShowBalance] = useState(false);
             const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7));
             const [filterType, setFilterType] = useState('all'); 
 
+            // --- 自動搬家邏輯 ---
             useEffect(() => {
-                const saved = localStorage.getItem(STORAGE_KEY);
-                if (saved) { try { setData(JSON.parse(saved)); } catch (e) { console.error(e); } }
+                // 1. 先看現在這個版本有沒有資料
+                const current = localStorage.getItem(STORAGE_KEY);
+                
+                if (current) {
+                    try { setData(JSON.parse(current)); } catch (e) { console.error(e); }
+                } else {
+                    // 2. 如果沒有，開始找舊版本的資料 (Legacy)
+                    let foundLegacy = false;
+                    for (const legacyKey of LEGACY_KEYS) {
+                        const legacyData = localStorage.getItem(legacyKey);
+                        if (legacyData) {
+                            try {
+                                const parsed = JSON.parse(legacyData);
+                                if (parsed && parsed.transactions) {
+                                    // 找到舊資料了！繼承過來
+                                    setData(parsed);
+                                    foundLegacy = true;
+                                    break; // 找到最近的一個就停
+                                }
+                            } catch(e) {}
+                        }
+                    }
+                    // 3. 如果有搬家成功，跳出通知
+                    if (foundLegacy) {
+                        setTimeout(() => {
+                            setModals(p => ({...p, updateNotice: true}));
+                        }, 1000);
+                    }
+                }
                 setIsLoaded(true);
             }, []);
+
             useEffect(() => { if (isLoaded) localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }, [data, isLoaded]);
+            
             const changeMonth = (delta) => {
                 const [year, month] = selectedMonth.split('-').map(Number);
                 const date = new Date(year, month - 1 + delta, 1);
@@ -551,6 +626,16 @@
             const handleDeleteTrans = (id) => {
                 setData(prev => ({ ...prev, transactions: prev.transactions.filter(t => t.id !== id) }));
                 setModals(prev => ({ ...prev, edit: null }));
+            };
+
+            // 處理自動備份下載 (從通知視窗觸發)
+            const handleAutoBackup = () => {
+                const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a'); 
+                a.href = url; a.download = `富婆帳本_自動搬家備份_${new Date().toISOString().split('T')[0]}.json`;
+                document.body.appendChild(a); a.click(); document.body.removeChild(a);
+                setModals(p => ({...p, updateNotice: false}));
             };
 
             if (!isLoaded) return null;
@@ -659,6 +744,7 @@
                             <p className="text-[10px] text-gray-400">最近更新 2025/11/25</p>
                         </div>
                     </div>
+                    {modals.updateNotice && <UpdateNoticeModal onBackup={handleAutoBackup} onClose={() => setModals(p => ({...p, updateNotice: false}))} />}
                     {modals.msg && <MotivationalPopup message={modals.msg} customImage={data.settings.customImage} onClose={() => setModals(p => ({...p, msg: null}))} />}
                     {(modals.add || modals.edit) && <TransactionModal initialData={modals.edit} onClose={() => setModals(p => ({...p, add: false, edit: null}))} onSave={handleSaveTrans} onDelete={handleDeleteTrans} categories={{income: data.settings.incomeCategories, expense: data.settings.expenseCategories, bank: data.settings.bankExpenseCategories}} />}
                     {modals.setting && <SettingsModal data={data} updateData={setData} onClose={() => setModals(p => ({...p, setting: false}))} />}
