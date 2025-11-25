@@ -61,7 +61,7 @@
         import { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, LabelList } from 'https://esm.sh/recharts@2.12.2?deps=react@18.2.0,react-dom@18.2.0';
         import { 
             X, Plus, Banknote, CreditCard, PieChart as PieIcon, Home, Utensils, ShoppingBag, 
-            Briefcase, ChevronDown, TrendingUp, Layers, Calculator, Edit3, Download, Upload, Image as ImageIcon, Trash2, Settings, Eye, EyeOff, Hash, MessageCircle, ArrowRight, Coffee, Wallet, Receipt, PiggyBank, ChevronLeft, ChevronRight, RefreshCw, Equal, Save, Filter, Trophy, Sparkles, NotebookPen, Instagram, AlertCircle
+            Briefcase, ChevronDown, TrendingUp, Layers, Calculator, Edit3, Download, Upload, Image as ImageIcon, Trash2, Settings, Eye, EyeOff, Hash, MessageCircle, ArrowRight, Coffee, Wallet, Receipt, PiggyBank, ChevronLeft, ChevronRight, RefreshCw, Equal, Save, Filter, Trophy, Sparkles, NotebookPen, Instagram, AlertCircle, RotateCw
         } from 'https://esm.sh/lucide-react@0.344.0?deps=react@18.2.0';
 
         const INITIAL_BANK_BALANCE_DEFAULT = 0; 
@@ -78,7 +78,8 @@
             'rich_lady_ledger_v5'
         ];
 
-        const DEFAULT_RICH_LADY_IMAGE = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23f2ede7'/%3E%3Ctext x='50' y='50' font-family='Arial' font-size='10' text-anchor='middle' fill='%232c2c2c'%3E上傳富婆照%3C/text%3E%3C/svg%3E";
+        // 修改：預設圖片改為 richlady.png (若讀取失敗則顯示錢包圖示)
+        const DEFAULT_RICH_LADY_IMAGE = "richlady.png";
 
         const THEME = {
             bg: 'bg-[#f2ede7]', cardBg: 'bg-white', text: 'text-[#2c2c2c]', border: 'border-[#2c2c2c]',
@@ -112,7 +113,7 @@
             return <NotebookPen className={iconClass} />;
         };
 
-        // --- 新增：版本更新通知 Modal ---
+        // --- 版本更新通知 Modal ---
         const UpdateNoticeModal = ({ onClose, onBackup }) => {
             return (
                 <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in">
@@ -149,20 +150,26 @@
             return (
                 <div className="fixed inset-0 z-[200] flex flex-col items-center justify-center bg-[#f2ede7] animate-in fade-in duration-700 w-full h-full overflow-hidden">
                     
-                    {/* 背景圖調整：靠左下、2/3高度、透明度低 */}
-                    <div className="absolute inset-x-0 bottom-0 h-[65%] z-0 pointer-events-none opacity-30">
+                    {/* 背景圖調整：透明度改為 50% */}
+                    <div className="absolute inset-x-0 bottom-0 h-[65%] z-0 pointer-events-none opacity-50">
                         <img src="bg.jpg" className="w-full h-full object-cover object-left-bottom mask-gradient" onError={(e) => e.target.style.display='none'} alt="background" />
-                        {/* 漸層遮罩讓頂部淡出 */}
                         <div className="absolute inset-0 bg-gradient-to-b from-[#f2ede7] via-transparent to-transparent"></div>
                     </div>
 
                     <div className="absolute inset-0 bg-polka opacity-20 pointer-events-none z-0"></div>
 
                     <div className="relative z-10 flex flex-col items-center w-full max-w-md mx-auto p-6 mt-[-100px]">
-                        <div className={`w-40 h-40 mb-6 rounded-full flex items-center justify-center border-4 ${THEME.border} shadow-2xl bg-white transform hover:scale-110 transition-transform duration-500 cursor-pointer active:rotate-12`}>
-                            {customImage ? <img src={customImage} className="w-full h-full object-cover rounded-full" alt="富婆照" /> : <Wallet className="w-20 h-20 text-[#f7b7a7]" strokeWidth={2} />}
+                        <div className={`w-40 h-40 mb-6 rounded-full flex items-center justify-center border-4 ${THEME.border} shadow-2xl bg-white transform hover:scale-110 transition-transform duration-500 cursor-pointer active:rotate-12 overflow-hidden`}>
+                            {/* 優先使用使用者上傳的圖，沒有則使用 richlady.png，再沒有則顯示錢包 */}
+                            {customImage ? 
+                                <img src={customImage} className="w-full h-full object-cover" alt="User Avatar" /> : 
+                                <img src={DEFAULT_RICH_LADY_IMAGE} className="w-full h-full object-cover" alt="Rich Lady Default" 
+                                     onError={(e) => {e.target.onerror = null; e.target.style.display='none'; e.target.nextSibling.style.display='block'}} />
+                            }
+                            {/* 備用圖示 (隱藏狀態，除非圖片載入失敗) */}
+                            <Wallet className="w-20 h-20 text-[#f7b7a7] hidden" strokeWidth={2} />
                         </div>
-                        {/* 字體顏色改為粉色 #f7b7a7 */}
+                        
                         <h1 className="text-4xl font-black mb-1 tracking-tight text-[#f7b7a7] drop-shadow-sm stroke-text">RICH LADY</h1>
                         <p className="text-lg font-bold text-[#5a758a] tracking-[0.2em] mb-8">富婆記帳本 越花越有錢</p>
                         
@@ -187,10 +194,8 @@
             if (isIncome) { itemStyle = THEME.income; textColorClass = 'text-[#5a7558]'; } 
             else if (isBankAffected) { itemStyle = THEME.payment; textColorClass = 'text-[#b05f4d]'; } 
             else { itemStyle = THEME.daily; textColorClass = 'text-[#967d23]'; }
-            
             const amountDisplay = `${isIncome ? '+' : '-'} $${transaction.amount.toLocaleString()}`;
             const dateDisplay = new Date(transaction.date).toLocaleDateString('zh-TW', { month: '2-digit', day: '2-digit' });
-
             return (
                 <div onClick={() => onClick(transaction)} className={`flex items-center justify-between p-4 mb-3 ${THEME.cardBg} rounded-xl border-2 ${THEME.border} ${THEME.shadowSm} hover:translate-y-[-2px] hover:shadow-[4px_4px_0px_0px_#1a1a1a] transition-all cursor-pointer`}>
                 <div className="flex items-center space-x-4">
@@ -481,7 +486,8 @@
                                 <div className={`absolute -bottom-4 left-1/2 transform -translate-x-1/2 w-8 h-8 bg-white border-b-4 border-r-4 ${THEME.border} rotate-45`}></div>
                             </div>
                             <div className="relative w-64 h-64 z-10">
-                                <img src={customImage || DEFAULT_RICH_LADY_IMAGE} alt="Rich Woman" className="w-full h-full object-contain drop-shadow-xl" />
+                                <img src={customImage || DEFAULT_RICH_LADY_IMAGE} alt="Rich Woman" className="w-full h-full object-contain drop-shadow-xl" 
+                                     onError={(e) => {e.target.onerror=null; e.target.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='40' fill='%23f7b7a7'/%3E%3C/svg%3E";}}/>
                             </div>
                         </div>
                         <p className="mt-4 text-gray-400 font-bold text-sm tracking-widest mb-10 animate-pulse">點擊關閉</p>
@@ -638,6 +644,26 @@
                 setModals(p => ({...p, updateNotice: false}));
             };
 
+            // --- 新增：手動強制更新備份流程 ---
+            const handleForceRefresh = () => {
+                if(confirm("💡 系統更新提示\n\n為了確保您的資料安全，我們將為您進行更新程序。\n\n點擊「確定」後，將會自動下載備份檔案，並重新整理頁面。")) {
+                    // 1. 自動下載備份
+                    const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a'); 
+                    a.href = url; 
+                    a.download = `富婆帳本_更新前備份_${new Date().toISOString().split('T')[0]}.json`;
+                    document.body.appendChild(a); 
+                    a.click(); 
+                    document.body.removeChild(a);
+
+                    // 2. 延遲一下再重整，確保下載開始
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1500);
+                }
+            };
+
             if (!isLoaded) return null;
             if (showSplash) return <SplashScreen onStart={handleStart} customImage={data.settings.customImage} />;
 
@@ -741,7 +767,10 @@
                                 <span className="text-gray-300">|</span>
                                 <a href="https://www.instagram.com/lazy2meg/" target="_blank" className="hover:scale-110 hover:text-[#f7b7a7] transition-all"><Instagram size={16}/></a>
                             </div>
-                            <p className="text-[10px] text-gray-400">最近更新 2025/11/25</p>
+                            <div className="flex items-center gap-2 text-gray-400">
+                                <p className="text-[10px]">最近更新 2025/11/25</p>
+                                <button onClick={handleForceRefresh} className="hover:text-[#f7b7a7] transition-colors" title="強制更新並備份"><RotateCw size={12}/></button>
+                            </div>
                         </div>
                     </div>
                     {modals.updateNotice && <UpdateNoticeModal onBackup={handleAutoBackup} onClose={() => setModals(p => ({...p, updateNotice: false}))} />}
